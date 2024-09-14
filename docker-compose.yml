@@ -1,0 +1,57 @@
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: ./docker/frankenphp/franken.dockerfile
+    restart: always
+    working_dir: /app/public
+    volumes:
+      - ./src/:/app/public
+    ports:
+      - "80:80" # HTTP
+      - "443:443" # HTTPS
+      - "443:443/udp" # HTTP/3
+    environment:
+      FRANKEN_PHP_WORKERS: 4
+    depends_on: 
+      - postgresql
+
+  postgresql:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_DB: laravel
+      POSTGRES_USER: laravel
+      POSTGRES_PASSWORD: secret
+    ports:
+      - "5432:5432"
+
+  composer:
+    build:
+      context: .
+      dockerfile: ./docker/composer/composer.dockerfile
+    volumes:
+      - ./src/:/app/public
+    working_dir: /app/public
+
+  npm:
+    image: node:current-alpine
+    volumes:
+      - ${PWD}:/app/public
+    entrypoint: ["npm"]
+    working_dir: /app/public
+  
+  artisan:
+    build:
+      context: .
+      dockerfile: ./docker/frankenphp/franken.dockerfile
+    volumes:
+      - ./src/:/app/public
+    working_dir: /app/public
+    depends_on:
+      - postgresql
+    entrypoint: ["php", "/app/public/artisan"]
+
+volumes:
+  postgres_data: {}
